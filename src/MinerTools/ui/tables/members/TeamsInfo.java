@@ -247,29 +247,34 @@ public class TeamsInfo extends Table{
             t.table(base -> {
                 base.add();
 
-                base.add("Damage").padLeft(5f);
-                base.add("Health").padLeft(5f);
-                base.add("BuildSpeed").padLeft(5f);
+                base.add("[red]伤").padLeft(5f);
+                base.add("[green]血").padLeft(5f);
+                base.add("[cyan]速").padLeft(5f);
 
                 base.row();
 
                 base.image(duo.uiIcon).size(iconMed);
-                addTeamRuleInfo(base, teamRules.blockDamageMultiplier, rules.blockDamageMultiplier);
-                addTeamRuleInfo(base, teamRules.blockHealthMultiplier, rules.blockHealthMultiplier);
-                addTeamRuleInfo(base, teamRules.buildSpeedMultiplier, rules.buildSpeedMultiplier);
+                addTeamRuleInfo(base, teamRules.blockDamageMultiplier, rules.blockDamageMultiplier, team);
+                addTeamRuleInfo(base, teamRules.blockHealthMultiplier, rules.blockHealthMultiplier, team);
+                addTeamRuleInfo(base, teamRules.buildSpeedMultiplier, rules.buildSpeedMultiplier, team);
 
                 base.row();
 
                 base.image(flare.uiIcon).size(iconMed);
-                addTeamRuleInfo(base, teamRules.unitDamageMultiplier, rules.unitDamageMultiplier);
+                addTeamRuleInfo(base, teamRules.unitDamageMultiplier, rules.unitDamageMultiplier, team);
                 base.add().center();
-                addTeamRuleInfo(base, teamRules.unitBuildSpeedMultiplier, rules.unitBuildSpeedMultiplier);
+                addTeamRuleInfo(base, teamRules.unitBuildSpeedMultiplier, rules.unitBuildSpeedMultiplier, team);
             });
         }, true);
     }
 
-    private static void addTeamRuleInfo(Table table, float teamRule, float rule){
-        table.add("" + String.format("%.1f", teamRule * rule) + "[gray]" + "/" + String.format("%.1f", teamRule) + "").center();
+    private static void addTeamRuleInfo(Table table, float teamRule, float rule, Team team){
+        if (Math.round(teamRule * rule) == teamRule * rule){
+            table.add("" + Math.round(teamRule * rule)).color(team.color).center();
+        }
+        else{
+            table.add("" + String.format("%.2f", teamRule * rule)).color(team.color).center();
+        }
     }
 
     private void addPowerBarTooltip(Element powerBar, PowerInfo info){
