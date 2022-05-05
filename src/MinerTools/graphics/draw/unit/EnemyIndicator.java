@@ -1,9 +1,11 @@
 package MinerTools.graphics.draw.unit;
 
+import MinerTools.*;
 import MinerTools.graphics.draw.*;
 import arc.*;
 import arc.graphics.g2d.*;
 import arc.math.*;
+import arc.math.geom.*;
 import arc.struct.*;
 import arc.util.*;
 import mindustry.game.*;
@@ -11,7 +13,6 @@ import mindustry.gen.*;
 import mindustry.graphics.*;
 import mindustry.world.blocks.storage.CoreBlock.*;
 
-import static MinerTools.MinerVars.mSettings;
 import static mindustry.Vars.*;
 
 /**
@@ -22,26 +23,32 @@ public class EnemyIndicator extends UnitDrawer{
 
     private float enemyRadius = defEnemyRadius;
 
+    private Vec2 cameraPos;
     private Seq<CoreBuild> cores;
 
     public EnemyIndicator(){
-        Events.on(EventType.WorldLoadEvent.class, e -> {
-            if(state.rules.polygonCoreProtection){
-                enemyRadius = defEnemyRadius;
-            }else{
-                enemyRadius = Math.max(state.rules.enemyCoreBuildRadius, defEnemyRadius);
-            }
-        });
+        cameraPos = Core.camera.position;
+
+        Events.on(EventType.WorldLoadEvent.class, e -> resetEnemyRadius());
+    }
+
+    private void resetEnemyRadius(){
+        if(state.rules.polygonCoreProtection){
+            enemyRadius = defEnemyRadius;
+        }else{
+            enemyRadius = Math.max(state.rules.enemyCoreBuildRadius, defEnemyRadius);
+        }
     }
 
     @Override
     public void readSetting(){
-        defEnemyRadius = mSettings.getInt("enemyUnitIndicatorRadius") * tilesize;
+        defEnemyRadius = MinerVars.settings.getInt("enemyUnitIndicatorRadius") * tilesize;
+        resetEnemyRadius();
     }
 
     @Override
     public boolean enabled(){
-        return mSettings.getBool("enemyUnitIndicator");
+        return MinerVars.settings.getBool("enemyUnitIndicator");
     }
 
     @Override
@@ -56,26 +63,24 @@ public class EnemyIndicator extends UnitDrawer{
 
     @Override
     public boolean isValid(Unit unit){
-        return unit.team != player.team();
+        return unit.team != player.team() && unit.hasWeapons();
     }
 
     @Override
     public void draw(Unit unit){
-        final float[] length = {0f};
-
         var wCores = cores.select(c -> c.within(unit, enemyRadius));
         if(wCores.isEmpty()) return;
 
-        CoreBuild core = wCores.min(c -> length[0] = unit.dst(c));
+        CoreBuild core = wCores.min(c -> unit.dst(c));
 
         Draw.z(Layer.overlayUI);
 
-        float indicatorLength = Mathf.lerp(20f, 55f, length[0] / enemyRadius);
+        float indicatorLength = Mathf.lerp(20f, 55f, unit.dst(core) / enemyRadius);
 
-        Tmp.v1.set(unit).sub(player).setLength(indicatorLength);
+        Tmp.v1.set(unit).sub(cameraPos).setLength(indicatorLength);
 
         Draw.color(unit.team().color);
-        Draw.rect(unit.type.fullIcon, player.x + Tmp.v1.x, player.y + Tmp.v1.y, 10f, 10f, Tmp.v1.angle() - 90f);
+        Draw.rect(unit.type.fullIcon, cameraPos.x + Tmp.v1.x, cameraPos.y + Tmp.v1.y, 10f, 10f, Tmp.v1.angle() - 90f);
 
         Draw.reset();
     }

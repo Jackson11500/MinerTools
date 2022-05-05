@@ -7,14 +7,12 @@ import MinerTools.interfaces.*;
 import arc.*;
 import arc.graphics.*;
 import arc.graphics.g2d.*;
-import arc.math.*;
 import arc.math.geom.*;
 import arc.scene.ui.layout.*;
 import arc.struct.*;
 import arc.util.*;
 import arc.util.pooling.*;
 import mindustry.core.*;
-import mindustry.game.*;
 import mindustry.game.EventType.*;
 import mindustry.game.Teams.*;
 import mindustry.gen.*;
@@ -22,11 +20,7 @@ import mindustry.graphics.*;
 import mindustry.type.*;
 import mindustry.ui.*;
 import mindustry.world.blocks.ConstructBlock.*;
-import mindustry.world.blocks.defense.turrets.*;
-import mindustry.world.blocks.defense.turrets.ItemTurret.*;
-import mindustry.world.blocks.storage.CoreBlock.*;
 
-import static MinerTools.MinerVars.mSettings;
 import static arc.Core.input;
 import static mindustry.Vars.*;
 
@@ -41,14 +35,14 @@ public class Drawer{
 
     private static final Seq<Drawable> drawers = new Seq<>();
 
-    private static boolean drawBuilding = true, drawUnit = true;
+    private static boolean drawBuilding, drawUnit;
 
     public static void init(){
         drawers.addAll(buildDrawers).addAll(unitDrawers);
 
         updateEnable();
 
-        readSettings();
+        updateSettings();
 
         Events.run(Trigger.draw, () -> {
             Vec2 v = input.mouseWorld();
@@ -65,18 +59,18 @@ public class Drawer{
         readSettings();
     }
 
+    public static void readSettings(){
+        for(var drawer : drawers){
+            drawer.readSetting();
+        }
+    }
+
     public static void updateEnable(){
         enableBuildDrawers = buildDrawers.select(Drawable::enabled);
         enableUnitDrawers = unitDrawers.select(Drawable::enabled);
 
         drawBuilding = buildDrawers.any();
         drawUnit = enableUnitDrawers.any();
-    }
-
-    public static void readSettings(){
-        for(var drawer : drawers){
-            drawer.readSetting();
-        }
     }
 
     public static float drawText(String text, float scl, float dx, float dy, Color color, int halign){
