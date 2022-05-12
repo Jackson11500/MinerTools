@@ -2,7 +2,7 @@ package MinerTools.ui.tables.floats;
 
 import MinerTools.*;
 import MinerTools.ui.*;
-import MinerTools.ui.settings.MSettingsTable.*;
+import MinerTools.ui.settings.*;
 import MinerTools.ui.tables.*;
 import arc.*;
 import arc.scene.ui.layout.*;
@@ -47,14 +47,14 @@ public class FloatTable extends DraggableTable implements Addable{
         title = new Table(black6);
         cont = new Table();
 
-        initSettings();
+        addSettings();
     }
 
-    protected void initSettings(){
-        initSettings(MinerVars.ui.minerSettings.ui);
+    protected void addSettings(){
+        addSettings(MinerVars.ui.minerSettings.ui.addCategorySetting(name));
     }
 
-    protected void initSettings(MSettingTable uiSettings){
+    protected void addSettings(MSettingTable uiSettings){
         uiSettings.checkPref("floats." + name + ".shown", true, b -> {
             if(b){
                 addUI();
@@ -91,12 +91,12 @@ public class FloatTable extends DraggableTable implements Addable{
 
             setupButtons(buttons);
 
-            buttons.button(isLocked() ? Icon.lockSmall : Icon.lockOpenSmall, clearTogglePartiali, this::toggleLocked).checked(b -> {
+            buttons.button(isLocked() ? Icon.lockSmall : Icon.lockOpenSmall, clearNoneTogglei, this::toggleLocked).checked(b -> {
                 b.getStyle().imageUp = (isLocked() ? Icon.lockSmall : Icon.lockOpenSmall);
                 return isLocked();
             });
 
-            buttons.button(showCont ? Icon.upSmall : Icon.downSmall, clearPartiali, this::toggleCont).update(b -> b.getStyle().imageUp = (showCont ? Icon.upSmall : Icon.downSmall));
+            buttons.button(showCont ? Icon.upSmall : Icon.downSmall, clearNonei, this::toggleCont).update(b -> b.getStyle().imageUp = (showCont ? Icon.upSmall : Icon.downSmall));
 
             buttons.button("x", MStyles.clearPartial2t, () -> {
                 MinerVars.settings.put("floats." + name + ".shown", false);

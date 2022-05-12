@@ -2,6 +2,7 @@ package MinerTools.ui.override;
 
 import MinerTools.*;
 import MinerTools.interfaces.*;
+import MinerTools.ui.settings.*;
 import arc.*;
 import arc.math.*;
 import arc.scene.event.*;
@@ -31,7 +32,7 @@ public class CoreItemsDisplay extends Table implements OverrideUI{
     /* For override */
     private Table override;
 
-    private Table itemsInfoTable = new Table();
+    private final Table itemsInfoTable = new Table();
 
     private final ObjectSet<Item> usedItems = new ObjectSet<>();
     private final ObjectSet<UnitType> usedUnits = new ObjectSet<>();
@@ -39,11 +40,11 @@ public class CoreItemsDisplay extends Table implements OverrideUI{
     private final int[] lastUpdateItems = new int[content.items().size];
     private final WindowedMean[] means = new WindowedMean[content.items().size];
 
-    private Table planInfoTable = new Table();
+    private final Table planInfoTable = new Table();
 
     private int lastTotal;
-    private ItemSeq planItems = new ItemSeq();
-    private ObjectIntMap<Block> planBlockCounter = new ObjectIntMap<>(){
+    private final ItemSeq planItems = new ItemSeq();
+    private final ObjectIntMap<Block> planBlockCounter = new ObjectIntMap<>(){
         @Override
         public void put(Block key, int value){
             super.put(key, get(key) + value);
@@ -63,7 +64,11 @@ public class CoreItemsDisplay extends Table implements OverrideUI{
     }
 
     private void addSettings(){
-        MinerVars.ui.minerSettings.ui.checkPref("overrideCoreItemsDisplay", true, b -> {
+        addSettings(MinerVars.ui.minerSettings.ui.addCategorySetting("overrideCoreItemsDisplay"));
+    }
+
+    private void addSettings(MSettingTable setting){
+        setting.checkPref("overrideCoreItemsDisplay", true, b -> {
             if(b){
                 doOverride();
             }else{
@@ -143,7 +148,7 @@ public class CoreItemsDisplay extends Table implements OverrideUI{
         float buildCostMultiplier = state.rules.buildCostMultiplier;
         float breakMultiplier = -1 * buildCostMultiplier * state.rules.deconstructRefundMultiplier;
 
-        control.input.allRequests().each(plan -> {
+        control.input.allPlans().each(plan -> {
             if(plan.block instanceof CoreBlock || plan.block.requirements.length == 0) return;
 
             planBlockCounter.put(plan.block, 1);
