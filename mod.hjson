@@ -14,7 +14,7 @@ main: "MinerTools.MinerTools"
 description: "A java mod for Mindustry."
 
 #the mod version
-version: 1.6.0
+version: 1.7
 
 hidden: true
 
@@ -24,4 +24,4 @@ minGameVersion: 136
 #this is a java mod
 java: true
 
-repo: "rlzzj/MinerTools"
+repo: "RlCCJ/MinerTools"

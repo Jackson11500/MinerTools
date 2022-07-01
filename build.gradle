@@ -25,10 +25,9 @@ repositories{
 
 ext{
     //the build number that this mod is made for
-    mindustryVersion = 'v135.1'
+    mindustryVersion = 'v135'
     jabelVersion = "0.7.0"
     sdkRoot = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
-    output = System.getenv("AppData") + "/mindustry/mods"
 }
 
 //java 8 backwards compatibility flag
@@ -39,11 +38,10 @@ allprojects{
 }
 
 dependencies{
-    implementation 'org.jetbrains:annotations:23.0.0'
-    compileOnly 'com.github.Anuken.Arc:arc-core:dfcb21ce56'
-    compileOnly 'com.github.Anuken.MindustryJitpack:core:2f8b009dbb'
-//    compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
     annotationProcessor "com.github.Anuken:jabel:$jabelVersion"
+
+    compileOnly 'com.github.Anuken.Arc:arc-core:dfcb21ce56'
+    compileOnly 'com.github.Anuken.MindustryJitpack:core:c68e206e8a'
 }
 
 task jarAndroid{
@@ -61,7 +59,7 @@ task jarAndroid{
 
         //dex and desugar files - this requires d8 in your PATH
         "d8 $dependencies --min-api 14 --output ${project.archivesBaseName}Android.jar ${project.archivesBaseName}Desktop.jar"
-            .execute(null, new File("$buildDir/libs")).waitForProcessOutput(System.out, System.err)
+                .execute(null, new File("$buildDir/libs")).waitForProcessOutput(System.out, System.err)
     }
 }
 

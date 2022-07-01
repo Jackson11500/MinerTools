@@ -1,25 +1,37 @@
 package MinerTools.graphics.draw;
 
+import MinerTools.*;
+import arc.func.*;
+import arc.struct.*;
+import mindustry.*;
 import mindustry.gen.*;
-
-import java.lang.reflect.*;
+import mindustry.world.*;
 
 public abstract class BuildDrawer<T extends Building> extends BaseDrawer<T>{
-    /* The type of draw */
-    private final Class<? extends Building> clazz;
+    private final Seq<Block> blocks;
 
     public BuildDrawer(){
-        var clazz = this.getClass();
+        this(MinerVars.visibleBlocks.copy());
+    }
 
-        ParameterizedType type = (ParameterizedType)clazz.getGenericSuperclass();
-        Type[] types = type.getActualTypeArguments();
-        this.clazz = (Class)types[0];
+    public BuildDrawer(Seq<Block> blocks){
+        this.blocks = blocks;
+    }
+
+    public BuildDrawer(Boolf<Block> predicate){
+        this(MinerVars.visibleBlocks.select(predicate));
     }
 
     @Override
-    public void tryDraw(Building type){
-        if(clazz.isAssignableFrom(type.getClass())){
-            super.tryDraw((T)type);
-        }
+    public void tryDraw(Building building){
+        if(!blocks.contains(building.block)) return;
+
+        super.tryDraw((T)building);
     }
+
+    @Override
+    public boolean isValid(T building){
+        return building.isValid() && !building.inFogTo(Vars.player.team());
+    }
+
 }

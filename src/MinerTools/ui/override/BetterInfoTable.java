@@ -6,16 +6,17 @@ import MinerTools.ui.utils.*;
 import arc.*;
 import arc.func.*;
 import arc.graphics.*;
-import arc.math.geom.*;
 import arc.scene.ui.*;
 import arc.scene.ui.layout.*;
 import arc.struct.*;
 import arc.util.*;
 import mindustry.*;
+import mindustry.ai.types.*;
 import mindustry.content.*;
 import mindustry.core.*;
 import mindustry.ctype.*;
 import mindustry.entities.*;
+import mindustry.entities.abilities.*;
 import mindustry.entities.units.*;
 import mindustry.game.EventType.*;
 import mindustry.game.*;
@@ -24,169 +25,189 @@ import mindustry.graphics.*;
 import mindustry.type.*;
 import mindustry.ui.*;
 import mindustry.world.*;
+import mindustry.world.blocks.logic.LogicBlock.*;
 import mindustry.world.modules.*;
 
-import java.lang.reflect.*;
+import static mindustry.Vars.*;
 
 public class BetterInfoTable extends Table implements OverrideUI{
-    private static final Seq<BuildBuilder<? extends Block, ? extends Building>> buildBuilders = Seq.with(
-        new BuildBuilder<>(block -> block.hasItems){
-            @Override
-            public boolean canBuild(Building build){
-                return build.items != null && build.items.any();
-            }
+    private final BaseInfoTable<?> unitInfo, buildInfo, tileInfo;
 
-            @Override
-            protected void build(Table table, Building build){
-                ItemModule items = build.items;
+    private final Seq<BaseInfoTable<?>> infoTables = Seq.with(
+    unitInfo = new BaseInfoTable<Unit>(){
+        @Override
+        public Unit hovered(){
+            return Units.closestOverlap(null, Core.input.mouseWorldX(), Core.input.mouseWorldY(), 5f, Entityc::isAdded);
+        }
 
-                table.table(Tex.pane, t -> {
-                    t.table(Tex.whiteui, tt -> tt.add("Items")).color(Color.gray).growX().row();
+        @Override
+        protected void build(){
+            unitDisplay(hover, this);
 
-                    t.table(itemsTable -> {
-                        final int[] index = {0};
-                        items.each(((item, amount) -> {
-                            itemsTable.table(itemTable -> {
-                                itemTable.image(item.uiIcon);
-                                itemTable.label(() -> UI.formatAmount(items.get(item)) + "").padLeft(3f);
-                            }).growX().padLeft(4f);
-
-                            if(++index[0] % 2 == 0) itemsTable.row();
-                        }));
-                    }).growX();
-                }).growX();
+            var builders = unitBuilders.select(unitBuilder -> unitBuilder.canBuild(hover));
+            if(builders.any()){
+                for(var builder : builders){
+                    builder.tryBuild(row(), hover);
+                }
             }
         }
+    },
+    buildInfo = new BaseInfoTable<Building>(){
+        @Override
+        public Building hovered(){
+            Tile tile = Vars.world.tileWorld(Core.input.mouseWorldX(), Core.input.mouseWorldY());
+
+            if(tile == null) return null;
+
+            return tile.build;
+        }
+
+        @Override
+        protected void build(){
+            Team team = hover.team;
+            if(team != Vars.player.team()){
+                hover.team(Vars.player.team());
+                hover.display(this);
+                hover.team(team);
+            }else{
+                hover.display(this);
+            }
+
+            var builders = buildBuilders.select(buildBuilder -> buildBuilder.canBuild(hover));
+            if(builders.any()){
+                for(var builder : builders){
+                    builder.tryBuild(row(), hover);
+                }
+            }
+        }
+    },
+    tileInfo = new BaseInfoTable<Tile>(){
+        @Override
+        public Tile hovered(){
+            return Vars.world.tileWorld(Core.input.mouseWorldX(), Core.input.mouseWorldY());
+        }
+
+        @Override
+        public void build(){
+            displayContent(this, hover.floor());
+            if(hover.overlay() != Blocks.air) displayContent(this, hover.overlay());
+            if(hover.block().isStatic()){
+                displayContent(this, hover.block());
+            }
+        }
+
+        private static void displayContent(Table table, UnlockableContent content){
+            table.table(t -> {
+                t.image(content.uiIcon).size(Vars.iconMed);
+                t.add(content.localizedName).pad(5);
+            }).growX();
+        }
+    }
+    );
+
+    private static final Seq<BuildBuilder<? extends Block, ? extends Building>> buildBuilders = Seq.with(
+    new BuildBuilder<>(block -> block.hasItems){
+        @Override
+        public boolean canBuild(Building build){
+            return build.items != null && build.items.any();
+        }
+
+        @Override
+        protected void build(Table table, Building build){
+            ItemModule items = build.items;
+
+            table.table(Tex.pane, t -> {
+                t.table(Tex.whiteui, tt -> tt.add("Items")).color(Color.gray).growX().row();
+
+                t.table(itemsTable -> {
+                    final int[] index = {0};
+                    items.each(((item, amount) -> {
+                        itemsTable.table(itemTable -> {
+                            itemTable.image(item.uiIcon);
+                            itemTable.label(() -> UI.formatAmount(items.get(item)) + "").padLeft(3f);
+                        }).growX().padLeft(4f);
+
+                        if(++index[0] % 3 == 0) itemsTable.row();
+                    }));
+                }).growX();
+            }).growX();
+        }
+    }
     );
 
     private static final Seq<UnitBuilder> unitBuilders = Seq.with(
-        new UnitBuilder(){
-            @Override
-            public boolean canBuild(Unit unit){
-                return unit.type.hasWeapons() && !unit.disarmed;
-            }
+    /* Weapons */ new UnitBuilder(){
+        @Override
+        public boolean canBuild(Unit unit){
+            return unit.type.hasWeapons() && !unit.disarmed;
+        }
 
-            @Override
-            protected void build(Table table, Unit unit){
-                table.table(Tex.pane, t -> {
-                    t.table(Tex.whiteui, tt -> tt.add("Weapons")).color(Color.gray).growX().row();
+        @Override
+        protected void build(Table table, Unit unit){
+            table.table(Tex.pane, t -> {
+                t.table(Tex.whiteui, tt -> tt.add("Weapons")).color(Color.gray).growX().row();
 
-                    float iconSize = Vars.mobile ? Vars.iconMed : Vars.iconXLarge;
+                float iconSize = Vars.mobile ? Vars.iconSmall : Vars.iconXLarge;
 
-                    t.table(weaponsTable -> {
-                        int index = 0;
-                        for(WeaponMount mount : unit.mounts()){
-                            Weapon weapon = mount.weapon;
+                t.table(weaponsTable -> {
+                    int index = 0;
+                    for(WeaponMount mount : unit.mounts()){
+                        Weapon weapon = mount.weapon;
 
-                            Label label = new Label(() -> String.format("%.1f", mount.reload / weapon.reload / 60 * 100) + "s");
+                        Label label = new Label(() -> String.format("%.1f", mount.reload / weapon.reload / 60 * 100) + "s");
 
-                            label.setAlignment(Align.bottom);
+                        label.setAlignment(Align.bottom);
 
-                            weaponsTable.table(Tex.pane, weaponTable -> {
-                                weaponTable.stack(new Image(weapon.region), label).minSize(iconSize).maxWidth(100f).row();
-                                weaponTable.add(new Bar("", Pal.ammo, () -> mount.reload / weapon.reload)).minSize(45f, 18f);
-                            }).bottom().growX();
+                        weaponsTable.table(Tex.pane, weaponTable -> {
+                            weaponTable.stack(new Image(weapon.region), label).minSize(iconSize).maxSize(80f, 120f).row();
+                            weaponTable.add(new Bar("", Pal.ammo, () -> mount.reload / weapon.reload)).minSize(45f, 18f);
+                        }).bottom().growX();
 
-                            if(++index % 3 == 0) weaponsTable.row();
+                        if(++index % 4 == 0) weaponsTable.row();
+                    }
+                }).growX();
+            }).growX();
+        }
+    },
+    /* Status */ new UnitBuilder(){
+        @Override
+        public boolean canBuild(Unit unit){
+            return !unit.statusBits().isEmpty();
+        }
+
+        @Override
+        protected void build(Table table, Unit unit){
+            Bits status = unit.statusBits();
+
+            table.table(Tex.pane, t -> {
+                t.table(Tex.whiteui, tt -> tt.add("Status")).color(Color.gray).growX().row();
+
+                float iconSize = Vars.mobile ? Vars.iconSmall : Vars.iconXLarge;
+
+                t.table(statusTable -> {
+                    int index = 0;
+                    for(StatusEffect effect : Vars.content.statusEffects()){
+                        if(!status.get(effect.id)) continue;
+
+                        Label label;
+                        if(Float.isInfinite(unit.getDuration(effect))){
+                            label = new Label(() -> "[red]Inf");
+                        }else{
+                            label = new Label(() -> String.format("%.1f", unit.getDuration(effect)) + "s");
                         }
-                    }).growX();
-                }).growX();
-            }
-        }
-    );
 
-    private final BaseInfoTable unitInfo, buildInfo, tileInfo;
+                        label.setAlignment(Align.bottom);
 
-    private final Seq<BaseInfoTable> infoTables = Seq.with(
-        unitInfo = new BaseInfoTable(){
-            private Unit unit;
+                        statusTable.table(Tex.pane2, stateTable -> {
+                            stateTable.stack(new Image(effect.uiIcon), label).size(iconSize).row();
+                        }).bottom().growX();
 
-            @Override
-            public boolean shouldRebuild(){
-                return unit != null && !unit.inFogTo(Vars.player.team());
-            }
-
-            @Override
-            public void hovered(){
-                unit = Units.closestOverlap(null, Core.input.mouseWorldX(), Core.input.mouseWorldY(), 5f, Entityc::isAdded);
-            }
-
-            @Override
-            protected void build(){
-                unit.display(this);
-
-                var builders = unitBuilders.select(unitBuilder -> unitBuilder.canBuild(unit));
-                if(builders.any()){
-                    for(var builder : builders){
-                        builder.tryBuild(row(), unit);
+                        if(++index % 4 == 0) statusTable.row();
                     }
-                }
-            }
-        },
-        buildInfo = new BaseInfoTable(){
-            private Building build;
-
-            @Override
-            public boolean shouldRebuild(){
-                return build != null && build.displayable() && !build.inFogTo(Vars.player.team());
-            }
-
-            @Override
-            public void hovered(){
-                Tile hoverTile = Vars.world.tileWorld(Core.input.mouseWorldX(), Core.input.mouseWorldY());
-                if(hoverTile != null){
-                    build = hoverTile.build;
-                }
-            }
-
-            @Override
-            protected void build(){
-                Team team = build.team;
-                if(team != Vars.player.team()){
-                    build.team(Vars.player.team());
-                    build.display(this);
-                    build.team(team);
-                }else{
-                    build.display(this);
-                }
-
-                var builders = buildBuilders.select(buildBuilder -> buildBuilder.canBuild(build));
-                if(builders.any()){
-                    for(var builder : builders){
-                        builder.tryBuild(row(), build);
-                    }
-                }
-            }
-        },
-        tileInfo = new BaseInfoTable(){
-            private Tile tile;
-
-            @Override
-            public boolean shouldRebuild(){
-                return tile != null;
-            }
-
-            @Override
-            public void hovered(){
-                tile = Vars.world.tileWorld(Core.input.mouseWorldX(), Core.input.mouseWorldY());
-            }
-
-            @Override
-            public void build(){
-                displayContent(this, tile.floor());
-                if(tile.overlay() != Blocks.air) displayContent(this, tile.overlay());
-                if(tile.block().isStatic()){
-                    displayContent(this, tile.block());
-                }
-            }
-
-            private static void displayContent(Table table, UnlockableContent content){
-                table.table(t -> {
-                    t.image(content.uiIcon).size(Vars.iconMed);
-                    t.add(content.localizedName).pad(5);
                 }).growX();
-            }
+            }).growX();
         }
+    }
     );
 
     /* For reset override */
@@ -194,6 +215,8 @@ public class BetterInfoTable extends Table implements OverrideUI{
     private Stack mainStack;
     private Boolp oldVisible;
     private Cell<?> topTableCell, oldCell;
+
+    private boolean locked;
 
     public BetterInfoTable(){
         /* PlacementFragment rebuild event */
@@ -213,33 +236,23 @@ public class BetterInfoTable extends Table implements OverrideUI{
     private void addSetting(){
         MinerVars.ui.settings.ui.addCategory("overrideInfoTable", setting -> {
             setting.checkPref("overrideInfoTable", true, b -> tryToggleOverride());
+            setting.checkPref("hover-locked", false, b -> locked = !locked).change();
         });
     }
 
     private void setup(){
-        update(() -> {
-            hovered();
-            rebuild();
-        });
+        update(this::rebuild);
     }
 
     private void rebuild(){
         clearChildren();
 
-        for(BaseInfoTable table : infoTables){
-            if(table.shouldRebuild()){
-                add(table.rebuild()).margin(6).growX().row();
+        for(BaseInfoTable<?> table : infoTables){
+            table.update();
+
+            if(locked || table.shouldAdd()){
+                add(table).margin(6).growX().row();
             }
-        }
-    }
-
-    private void hovered(){
-        Vec2 v = stageToLocalCoordinates(Core.input.mouse());
-
-        if(Core.scene.hasMouse() || hit(v.x, v.y, false) != null) return;
-
-        for(BaseInfoTable table : infoTables){
-            table.hovered();
         }
     }
 
@@ -304,25 +317,102 @@ public class BetterInfoTable extends Table implements OverrideUI{
         }
     }
 
-    static abstract class BaseInfoTable extends Table{
+    public static void unitDisplay(Unit unit, Table table){
+        UnitType type = unit.type;
+
+        table.table(t -> {
+            t.left();
+            t.add(new Image(type.uiIcon)).size(iconMed).scaling(Scaling.fit);
+            t.labelWrap(type.localizedName).left().width(190f).padLeft(5);
+        }).growX().left();
+        table.row();
+
+        table.table(bars -> {
+            bars.defaults().growX().height(20f).pad(4);
+
+            //TODO overlay shields
+            bars.add(new Bar(
+            () -> unit.health + "/" + type.health + "(" + (int)(unit.healthf() * 100) + "%" + ")",
+            () -> Pal.health, unit::healthf).blink(Color.white));
+            bars.row();
+
+            if(state.rules.unitAmmo){
+                bars.add(new Bar(type.ammoType.icon() + " " + Core.bundle.get("stat.ammo"), type.ammoType.barColor(), () -> unit.ammo / type.ammoCapacity));
+                bars.row();
+            }
+
+            for(Ability ability : unit.abilities){
+                ability.displayBars(unit, bars);
+            }
+
+            if(type.payloadCapacity > 0 && unit instanceof Payloadc payload){
+                bars.add(new Bar(
+                () -> Core.bundle.get("stat.payloadcapacity") + ": " + payload.payloadUsed() + "/" + type.payloadCapacity,
+                () -> Pal.items, () -> payload.payloadUsed() /type.payloadCapacity));
+                bars.row();
+
+                var count = new float[]{-1};
+                bars.table().update(t -> {
+                    if(count[0] != payload.payloadUsed()){
+                        payload.contentInfo(t, 8 * 2, 270);
+                        count[0] = payload.payloadUsed();
+                    }
+                }).growX().left().height(0f).pad(0f);
+            }
+        }).growX();
+
+        if(unit.controller() instanceof LogicAI ai){
+            table.row();
+
+            table.add(Blocks.microProcessor.emoji() + Core.bundle.get("units.processorcontrol")).growX().wrap().left();
+
+            /* Show the position of controller */
+            if(ai.controller instanceof LogicBuild logicBuild){
+                table.row();
+
+                table.add(Blocks.microProcessor.emoji() + Tmp.v1.set(logicBuild)).growX().wrap().left();
+            }
+        }
+
+        table.row();
+
+        if(type.logicControllable){
+            /* Unit flag always show */
+            table.label(() -> Iconc.settings + " " + (long)unit.flag + "").color(Color.lightGray).growX().wrap().left();
+            table.row();
+        }
+    }
+
+    static abstract class BaseInfoTable<T> extends Table{
+        T hover, lastHover;
 
         public BaseInfoTable(){
             background(Tex.pane);
         }
 
-        public BaseInfoTable rebuild(){
-            clearChildren();
+        public void update(){
+            hover = hovered();
 
-            if(!shouldRebuild()) return this;
+            if(shouldRebuild()) rebuild();
 
-            build();
-
-            return this;
+            lastHover = hover;
         }
 
-        public abstract boolean shouldRebuild();
+        public void rebuild(){
+            clearChildren();
 
-        public abstract void hovered();
+            build();
+        }
+
+        public boolean shouldAdd(){
+            return hover != null;
+        }
+
+        public boolean shouldRebuild(){
+            return shouldAdd() && hover != lastHover;
+        }
+
+        public abstract T hovered();
 
         protected abstract void build();
     }
@@ -336,24 +426,10 @@ public class BetterInfoTable extends Table implements OverrideUI{
     }
 
     static abstract class BuildBuilder<KT extends Block, DT extends Building> extends BaseBarBuilder<DT>{
-        private final Class<KT> blockClass;
-
         private final Seq<Block> blocks;
 
-        public BuildBuilder(){
-            var clazz = this.getClass();
-
-            ParameterizedType type = (ParameterizedType)clazz.getGenericSuperclass();
-            Type[] types = type.getActualTypeArguments();
-
-            blockClass = (Class<KT>)types[0];
-
-            blocks = MinerVars.visibleBlocks.select(block -> blockClass.isAssignableFrom(block.getClass()));
-        }
-
-        public BuildBuilder(Boolf<Block> filter){
-            blockClass = null;
-            blocks = MinerVars.visibleBlocks.select(filter);
+        public BuildBuilder(Boolf<Block> predicate){
+            blocks = MinerVars.visibleBlocks.select(predicate);
         }
 
         @Override

@@ -23,12 +23,10 @@ public class EnemyIndicator extends UnitDrawer{
 
     private float enemyRadius = defEnemyRadius;
 
-    private Vec2 cameraPos;
+    private final Vec2 cameraPos;
     private Seq<CoreBuild> cores;
 
     public EnemyIndicator(){
-        drawInCamera = false;
-
         cameraPos = Core.camera.position;
 
         Events.on(EventType.WorldLoadEvent.class, e -> resetEnemyRadius());
@@ -65,11 +63,11 @@ public class EnemyIndicator extends UnitDrawer{
 
     @Override
     public boolean isValid(Unit unit){
-        return unit.team != player.team() && unit.hasWeapons();
+        return super.isValid(unit) && unit.team != player.team() && unit.hasWeapons();
     }
 
     @Override
-    public void draw(Unit unit){
+    protected void draw(Unit unit){
         var wCores = cores.select(c -> c.within(unit, enemyRadius));
         if(wCores.isEmpty()) return;
 

@@ -17,10 +17,6 @@ import static mindustry.Vars.*;
 public class UnitAlert extends UnitDrawer{
     public float unitAlertRadius;
 
-    public UnitAlert(){
-        drawInCamera = false;
-    }
-
     @Override
     public void readSetting(){
         unitAlertRadius = MinerVars.settings.getInt("unitAlertRadius") * tilesize;
@@ -39,7 +35,8 @@ public class UnitAlert extends UnitDrawer{
     @Override
     public boolean isValid(Unit unit){
         UnitType type = unit.type;
-        return (type.hasWeapons()) && // has weapons
+        return super.isValid(unit) &&
+        (type.hasWeapons()) && // has weapons
         (unit.team != player.team()) && // isEnemy
         (!state.rules.unitAmmo || unit.ammo > 0f) && // hasAmmo
         (player.unit().isFlying() ? type.targetAir : type.targetGround) && // can hit player
@@ -47,11 +44,11 @@ public class UnitAlert extends UnitDrawer{
     }
 
     @Override
-    public void draw(Unit unit){
+    protected void draw(Unit unit){
         Draw.z(Layer.overlayUI);
 
-        Lines.stroke(1.2f, unit.team.color);
-        Lines.dashCircle(unit.x, unit.y, unit.range());
+        Lines.stroke(1.2f);
+        Drawf.dashCircle(unit.x, unit.y, unit.range(), unit.team().color);
 
         float dst = unit.dst(player);
         if(dst > unit.range()){

@@ -23,6 +23,8 @@ public class MinerTools extends Mod{
         renderer.minZoom = 0.4f;
         renderer.maxZoom = 12f;
 
+        // mobile = true; // Only for debug
+
         Events.on(EventType.ContentInitEvent.class, e -> MinerVars.initContent());
 
         Events.on(EventType.ClientLoadEvent.class, e -> {
@@ -30,7 +32,7 @@ public class MinerTools extends Mod{
 
             MinerVars.init();
 
-            Drawer.init();
+            Renderer.init();
         });
 
         Events.on(EventType.WorldLoadEvent.class, e -> {
@@ -53,7 +55,9 @@ public class MinerTools extends Mod{
             tryPanToController();
         }
 
-        MinerVars.ui.update();
+        if(MinerVars.ui != null){
+            MinerVars.ui.update();
+        }
 
         BaseAI.updateController();
     }

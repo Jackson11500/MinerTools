@@ -26,21 +26,6 @@ public class MSettingsTable extends Table implements Addable{
 
     @Override
     public void addUI(){
-        /*Table menu = Reflect.get(Vars.ui.settings, "menu");
-        Table prefs = Reflect.get(Vars.ui.settings, "prefs");
-
-        menu.row();
-        menu.button("MinerTools", Styles.cleart, () -> {
-            prefs.clearChildren();
-            prefs.add(this);
-        }).name("miner-tools-settings");
-
-        menu.update(() -> {
-            if(menu.find("miner-tools-settings") == null){
-                this.addUI();
-            }
-        });*/
-
         /* Use the setting category */
         Vars.ui.settings.addCategory("MinerTools", t -> t.add(this));
     }
@@ -66,16 +51,34 @@ public class MSettingsTable extends Table implements Addable{
                     drawerRadiusSlider(setting, "turretAlertRadius", 10, 5, 50);
 
                     drawerCheck(setting, "itemTurretAmmoShow", true);
+
+                    setting.addCategory("info", info -> {
+                        drawerCheck(info, "buildStatus", true);
+                        drawerCheck(info, "buildHealthBar", true);
+
+                        drawerCheck(info, "constructBuildInfo", true);
+                        drawerCheck(info, "unitBuildInfo", true);
+                    });
+                });
+
+                addCategory("select", setting -> {
+                    drawerCheck(setting, "buildSelectInfo", true);
+                    drawerCheck(setting, "itemBridgeLinksShow", true);
+                });
+
+                addCategory("player", setting -> {
+                    drawerCheck(setting, "payloadDropHint", true);
+                    drawerCheck(setting, "playerRange", true);
                 });
             }
 
             public static void drawerCheck(MSettingTable table, String name, boolean def){
-                table.checkPref(name, def, b -> Drawer.updateEnable());
+                table.checkPref(name, def, b -> Renderer.updateEnable());
             }
 
             public static void drawerRadiusSlider(MSettingTable table, String name, int def, int min, int max){
                 table.sliderPref(name, def, min, max, s -> {
-                    Drawer.updateSettings();
+                    Renderer.updateSettings();
                     return s + "(Tile)";
                 });
             }
@@ -88,7 +91,10 @@ public class MSettingsTable extends Table implements Addable{
 
     private void setup(){
         table(t -> {
-            t.add("MinerToolsSettings").center().row();
+            t.table(table -> {
+                table.add("MinerToolsSettings").center();
+            }).growX().row();
+
             t.image().color(Pal.accent).minWidth(550f).growX();
 
             t.row();
@@ -106,7 +112,7 @@ public class MSettingsTable extends Table implements Addable{
                         }
                     }).grow().checked(b -> show == settingTable);
                 }
-            }).minWidth(70f * settingTables.size).padTop(5f).padBottom(5f);
+            }).minSize(70f * settingTables.size, 48f).padTop(5f).padBottom(5f);
         }).top();
 
         row();

@@ -18,7 +18,7 @@ public class MStyles{
 
     public static ButtonStyle clearToggleAccentb, logicVarTogglet, chatb;
     public static ImageButtonStyle rclearTransi;
-    public static TextButtonStyle clearPartial2t, clearToggleTransAccentt;
+    public static TextButtonStyle clearPartial2t, clearToggleTranst;
     public static TextFieldStyle noneField;
 
     public static void load(){
@@ -52,8 +52,8 @@ public class MStyles{
             down = flatDown;
         }};
 
-        clearToggleTransAccentt = new TextButtonStyle(defaultt){{
-            up = none;
+        clearToggleTranst = new TextButtonStyle(defaultt){{
+            up = whiteuiRegion.tint(Color.gray);
             over = flatOver;
             down = transAccentDrawable;
             checked = transAccentDrawable;
